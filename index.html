@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Snake Game</title>
+  <style>
+    body { text-align: center; background: #222; color: #fff; }
+    canvas { background: #333; display: block; margin: auto; }
+    #leaderboard { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Snake Game 🍎🌸</h1>
+  <canvas id="game" width="400" height="400"></canvas>
+  <h2 id="score">Score: 0</h2>
+  <div id="leaderboard"></div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const box = 20;
+    let snake = [{x: 9*box, y: 10*box}];
+    let direction;
+    let food = {x: Math.floor(Math.random()*19)*box, y: Math.floor(Math.random()*19)*box};
+    let score = 0;
+
+    document.addEventListener("keydown", dir);
+    function dir(event) {
+      if(event.keyCode == 37 && direction != "RIGHT") direction = "LEFT";
+      if(event.keyCode == 38 && direction != "DOWN") direction = "UP";
+      if(event.keyCode == 39 && direction != "LEFT") direction = "RIGHT";
+      if(event.keyCode == 40 && direction != "UP") direction = "DOWN";
+    }
+
+    function collision(newHead, snake){
+      for(let i=0; i<snake.length; i++){
+        if(newHead.x == snake[i].x && newHead.y == snake[i].y){
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function draw(){
+      ctx.fillStyle = "#333";
+      ctx.fillRect(0,0,400,400);
+
+      for(let i=0; i<snake.length; i++){
+        ctx.fillStyle = (i==0) ? "green" : "lightgreen";
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+        ctx.strokeStyle = "darkgreen";
+        ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+      }
+
+      ctx.fillStyle = "red";
+      ctx.fillRect(food.x, food.y, box, box);
+
+      let snakeX = snake[0].x;
+      let snakeY = snake[0].y;
+
+      if(direction == "LEFT") snakeX -= box;
+      if(direction == "UP") snakeY -= box;
+      if(direction == "RIGHT") snakeX += box;
+      if(direction == "DOWN") snakeY += box;
+
+      if(snakeX == food.x && snakeY == food.y){
+        score++;
+        food = {x: Math.floor(Math.random()*19)*box, y: Math.floor(Math.random()*19)*box};
+      } else {
+        snake.pop();
+      }
+
+      let newHead = {x: snakeX, y: snakeY};
+
+      if(snakeX < 0 || snakeY < 0 || snakeX >= 400 || snakeY >= 400 || collision(newHead, snake)){
+        clearInterval(game);
+        saveScore(score); // Save to backend
+      }
+
+      snake.unshift(newHead);
+      document.getElementById("score").innerText = "Score: " + score;
+    }
+
+    function saveScore(score){
+      const name = prompt("Enter your name:");
+      fetch("http://127.0.0.1:5000/save_score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({name: name, score: score})
+      })
+      .then(res => res.json())
+      .then(data => {
+        console.log(data);
+        getLeaderboard();
+      });
+    }
+
+    function getLeaderboard(){
+      fetch("http://127.0.0.1:5000/get_scores")
+      .then(res => res.json())
+      .then(data => {
+        let html = "<h3>Leaderboard</h3><ol>";
+        data.forEach(row => {
+          html += `<li>${row[0]} - ${row[1]}</li>`;
+        });
+        html += "</ol>";
+        document.getElementById("leaderboard").innerHTML = html;
+      });
+
+    }
+    // Example: send score to backend
+function saveScore(playerName, points) {
+  fetch("http://127.0.0.1:5000/add_score", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"   // JSON header dite hobe
+    },
+    body: JSON.stringify({
+      name: playerName,
+      points: points
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log("Response from server:", data);
+  })
+  .catch(error => console.error("Error:", error));
+}
+
+
+    let game = setInterval(draw, 100);
+  </script>
+</body>
+</html>

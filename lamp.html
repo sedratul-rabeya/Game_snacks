@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cute Table Lamp</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #222;
+      transition: background 0.5s;
+    }
+
+    .lamp {
+      position: relative;
+      width: 160px;
+      height: 300px;
+      cursor: pointer;
+    }
+
+    /* Lamp base */
+    .base {
+      width: 120px;
+      height: 30px;
+      background: #444;
+      margin: auto;
+      border-radius: 15px;
+      position: relative;
+      top: 20px;
+    }
+
+    /* Lamp stand */
+    .stand {
+      width: 15px;
+      height: 100px;
+      background: #777;
+      margin: auto;
+    }
+
+    /* Lamp shade */
+    .shade {
+      width: 160px;
+      height: 120px;
+      background: #ffcc88;
+      margin: auto;
+      border-radius: 80px 80px 40px 40px;
+      position: relative;
+      transition: background 0.5s, box-shadow 0.5s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Lamp face (eyes + smile) */
+    .face {
+      position: absolute;
+      top: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .eyes {
+      display: flex;
+      gap: 25px;
+    }
+
+    .eye {
+      width: 15px;
+      height: 15px;
+      background: #222;
+      border-radius: 50%;
+    }
+
+    .smile {
+      margin-top: 10px;
+      width: 40px;
+      height: 20px;
+      border-bottom: 3px solid #222;
+      border-radius: 0 0 40px 40px;
+    }
+
+    /* Pull string (Roshi) */
+    .string {
+      position: absolute;
+      bottom: -40px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 3px;
+      height: 60px;
+      background: #999;
+    }
+
+    .knob {
+      width: 20px;
+      height: 20px;
+      background: #666;
+      border-radius: 50%;
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    /* Lamp ON */
+    .lamp.on .shade {
+      background: #ffe066;
+      box-shadow: 0 0 60px 30px #ffec99;
+    }
+
+    .lamp.on .eye {
+      background: #000;
+    }
+
+    .lamp.on .smile {
+      border-bottom-color: #000;
+    }
+  </style>
+</head>
+<body>
+  <div class="lamp" id="lamp">
+    <div class="shade">
+      <div class="face">
+        <div class="eyes">
+          <div class="eye"></div>
+          <div class="eye"></div>
+        </div>
+        <div class="smile"></div>
+      </div>
+      <div class="string" id="string">
+        <div class="knob"></div>
+      </div>
+    </div>
+    <div class="stand"></div>
+    <div class="base"></div>
+  </div>
+
+  <script>
+    const lamp = document.getElementById("lamp");
+    const string = document.getElementById("string");
+
+    string.addEventListener("click", () => {
+      lamp.classList.toggle("on");
+    });
+  </script>
+</body>
+</html>
