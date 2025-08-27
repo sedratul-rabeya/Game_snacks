@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bloom Snake — Fruits & Flowers</title>
+  <style>
+    :root {
+      --bg1: #0f172a;   /* slate-900 */
+      --bg2: #1e293b;   /* slate-800 */
+      --glass: rgba(255,255,255,.08);
+      --accent: #34d399; /* emerald-400 */
+      --accent-2: #a78bfa; /* violet-400 */
+      --snake-head: #22c55e; /* green-500 */
+      --snake-body: #86efac; /* green-300 */
+      --grid: rgba(255,255,255,.05);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 10% 10%, #0ea5e9 0%, transparent 60%),
+                  radial-gradient(1000px 700px at 90% 20%, #8b5cf6 0%, transparent 60%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: #e5e7eb;
+      overflow: hidden;
+    }
+
+    /* Decorative soft grid */
+    .grid-overlay {
+      position: fixed; inset: 0;
+      background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px),
+                        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+      mask-image: radial-gradient(circle at 50% 40%, rgba(0,0,0,.7), transparent 70%);
+    }
+
+    .hud {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 14px;
+      padding: 10px 14px; border-radius: 16px;
+      background: var(--glass);
+      backdrop-filter: blur(10px) saturate(140%);
+      box-shadow: var(--shadow);
+      user-select: none;
+    }
+    .hud h1 { margin: 0; font-size: 18px; letter-spacing: .5px; font-weight: 700; }
+    .pill { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+    .score { font-weight: 700; }
+
+    button {
+      border: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      color: #fff; padding: 8px 12px; border-radius: 12px; cursor: pointer;
+      font-weight: 600; letter-spacing: .3px; box-shadow: var(--shadow);
+    }
+    button:hover { filter: brightness(1.1); }
+
+    #game {
+      position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
+    }
+
+    /* Tooltip bottom-right */
+    .help {
+      position: fixed; right: 16px; bottom: 16px;
+      opacity: .85; font-size: 14px;
+      background: var(--glass); border: 1px solid rgba(255,255,255,.1);
+      padding: 8px 10px; border-radius: 12px; backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" aria-label="Snake game canvas"></canvas>
+  <div class="grid-overlay" aria-hidden="true"></div>
+
+  <div class="hud" role="toolbar" aria-label="Game controls and score">
+    <h1>🌿 Bloom Snake</h1>
+    <div class="pill">Speed: <span id="speedLabel">Normal</span></div>
+    <div class="pill">Score: <span id="score">0</span></div>
+    <button id="restart" type="button" aria-label="Restart game">Restart ↻</button>
+  </div>
+
+  <div class="help">Use ◀ ▶ ▲ ▼ to move • Eat fruits 🍎 and flowers 🌸 • Avoid walls & your tail</div>
+
+  <script>
+    // ===== Game setup =====
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const speedLabel = document.getElementById('speedLabel');
+    const restartBtn = document.getElementById('restart');
+
+    // Grid cell size
+    const CELL = 24; // matches the decorative overlay
+
+    // Fit canvas to window using whole cells so movement stays perfectly aligned
+    function fitCanvas() {
+      const w = Math.floor(window.innerWidth / CELL) * CELL;
+      const h = Math.floor(window.innerHeight / CELL) * CELL;
+      canvas.width = w; canvas.height = h;
+    }
+    fitCanvas();
+    window.addEventListener('resize', () => { fitCanvas(); draw(true); });
+
+    // Game state
+    const DIR = { LEFT: {x:-1,y:0}, RIGHT:{x:1,y:0}, UP:{x:0,y:-1}, DOWN:{x:0,y:1} };
+    let dir = DIR.RIGHT;
+    let nextDir = dir;
+    let tickMs = 110; // Normal speed
+    function setSpeed(label, ms){ speedLabel.textContent = label; tickMs = ms; restartLoop(); }
+
+    // Optional: change speed with keys [1]=Slow [2]=Normal [3]=Fast
+    window.addEventListener('keydown', (e)=>{
+      if(e.key==='1') setSpeed('Slow', 150);
+      else if(e.key==='2') setSpeed('Normal', 110);
+      else if(e.key==='3') setSpeed('Fast', 75);
+    });
+
+    let snake, food, score, loop; // will initialize in start()
+
+    const FRUITS = ['🍎','🍓','🍇','🍉','🍒','🍋','🍑'];
+    const FLOWERS = ['🌸','🌼','🌻','🌷'];
+
+    function randInt(max){ return Math.floor(Math.random()*max); }
+
+    function cellsWide(){ return canvas.width / CELL | 0; }
+    function cellsHigh(){ return canvas.height / CELL | 0; }
+
+    function randomFreeCell(){
+      const used = new Set(snake.map(s=> (s.x+','+s.y)));
+      let x,y,tries=0,limit=5000;
+      do { x = randInt(cellsWide()); y = randInt(cellsHigh()); tries++; }
+      while(used.has(x+','+y) && tries < limit);
+      return {x,y};
+    }
+
+    function spawnFood(){
+      const pos = randomFreeCell();
+      const isFlower = Math.random() < 0.35; // 35% flowers, 65% fruits
+      const emoji = isFlower ? FLOWERS[randInt(FLOWERS.length)] : FRUITS[randInt(FRUITS.length)];
+      return { x: pos.x, y: pos.y, emoji, value: isFlower ? 2 : 1 };
+    }
+
+    function start(){
+      const startX = (cellsWide()/2|0);
+      const startY = (cellsHigh()/2|0);
+      snake = [ {x:startX, y:startY}, {x:startX-1,y:startY}, {x:startX-2,y:startY} ];
+      dir = DIR.RIGHT; nextDir = dir;
+      score = 0; scoreEl.textContent = score;
+      food = spawnFood();
+      restartLoop();
+    }
+
+    function restartLoop(){
+      if(loop) clearInterval(loop);
+      loop = setInterval(tick, tickMs);
+    }
+
+    // Input — prevent reversing into yourself
+    window.addEventListener('keydown', (e)=>{
+      if(e.key === 'ArrowLeft'  && dir !== DIR.RIGHT) nextDir = DIR.LEFT;
+      else if(e.key === 'ArrowRight' && dir !== DIR.LEFT) nextDir = DIR.RIGHT;
+      else if(e.key === 'ArrowUp'   && dir !== DIR.DOWN) nextDir = DIR.UP;
+      else if(e.key === 'ArrowDown' && dir !== DIR.UP)   nextDir = DIR.DOWN;
+    });
+
+    restartBtn.addEventListener('click', start);
+
+    // ===== Game loop =====
+    function tick(){
+      dir = nextDir; // apply buffered direction once per tick
+      const head = snake[0];
+      const nx = head.x + dir.x;
+      const ny = head.y + dir.y;
+
+      // Collisions: walls
+      if(nx < 0 || ny < 0 || nx >= cellsWide() || ny >= cellsHigh()) {
+        gameOver('You hit the wall');
+        return;
+      }
+
+      // Collisions: self
+      for(let i=0;i<snake.length;i++){
+        if(snake[i].x === nx && snake[i].y === ny){
+          gameOver('You bit your tail');
+          return;
+        }
+      }
+
+      // Advance
+      snake.unshift({x:nx, y:ny});
+
+      // Eat
+      if(nx === food.x && ny === food.y){
+        score += food.value; // flowers worth 2
+        scoreEl.textContent = score;
+        food = spawnFood();
+        // Do not pop tail → snake grows
+      } else {
+        snake.pop();
+      }
+
+      draw();
+    }
+
+    function gameOver(reason){
+      clearInterval(loop);
+      fancyToast('Game Over — '+reason+'! Score: '+score+'  •  Press Restart');
+    }
+
+    // ===== Rendering =====
+    function roundedRect(x,y,w,h,r){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.arcTo(x+w,y, x+w,y+h, r);
+      ctx.arcTo(x+w,y+h, x,y+h, r);
+      ctx.arcTo(x,y+h, x,y, r);
+      ctx.arcTo(x,y, x+w,y, r);
+      ctx.closePath();
+    }
+
+    function draw(bgOnly=false){
+      // Background
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // Subtle vignette
+      const g = ctx.createRadialGradient(canvas.width*0.5, canvas.height*0.45, Math.min(canvas.width,canvas.height)*0.1,
+                                         canvas.width*0.5, canvas.height*0.5, Math.max(canvas.width,canvas.height)*0.7);
+      g.addColorStop(0,'rgba(255,255,255,0.04)');
+      g.addColorStop(1,'rgba(0,0,0,0.15)');
+      ctx.fillStyle = g; ctx.fillRect(0,0,canvas.width,canvas.height);
+      if(bgOnly) return;
+
+      // Draw food (emoji)
+      ctx.font = (CELL*0.9) + 'px "Apple Color Emoji","Segoe UI Emoji", system-ui';
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'center';
+      ctx.fillText(food.emoji, food.x*CELL + CELL/2, food.y*CELL + CELL/2);
+
+      // Draw snake
+      for(let i=snake.length-1;i>=0;i--){
+        const s = snake[i];
+        const px = s.x*CELL, py = s.y*CELL;
+        const radius = 6;
+        // body gradient for a soft, modern look
+        const grad = ctx.createLinearGradient(px, py, px, py+CELL);
+        grad.addColorStop(0, i===0 ? '#22c55e' : '#a7f3d0');
+        grad.addColorStop(1, i===0 ? '#16a34a' : '#6ee7b7');
+        ctx.fillStyle = grad;
+        roundedRect(px+2, py+2, CELL-4, CELL-4, radius);
+        ctx.fill();
+        // outline
+        ctx.lineWidth = 1.5; ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.stroke();
+      }
+    }
+
+    // Tiny toast helper
+    let toastTimer;
+    function fancyToast(text){
+      const el = document.createElement('div');
+      el.textContent = text;
+      el.style.position='fixed'; el.style.left='50%'; el.style.top='70%'; el.style.transform='translate(-50%,-50%)';
+      el.style.padding='10px 14px'; el.style.borderRadius='12px'; el.style.background='rgba(0,0,0,.65)'; el.style.color='#fff';
+      el.style.fontWeight='700'; el.style.letterSpacing='.3px'; el.style.boxShadow='0 10px 25px rgba(0,0,0,.35)';
+      el.style.backdropFilter='blur(6px)'; el.style.border='1px solid rgba(255,255,255,.15)';
+      document.body.appendChild(el);
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(()=>{ el.remove(); }, 2200);
+    }
+    // Example: send score to backend
+function saveScore(playerName, points) {
+  fetch("http://127.0.0.1:5000/add_score", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"   // JSON header dite hobe
+    },
+    body: JSON.stringify({
+      name: playerName,
+      points: points
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log("Response from server:", data);
+  })
+  .catch(error => console.error("Error:", error));
+}
+
+
+    // Kickoff
+    start();
+    draw();
+  </script>
+</body>
+</html>

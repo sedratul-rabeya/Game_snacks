@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>3D House + Lamp with Flying Sky</title>
+<style>
+
+    :root {
+      --bg1: #0f172a;   /* slate-900 */
+      --bg2: #1e293b;   /* slate-800 */
+      --glass: rgba(255,255,255,.08);
+      --accent: #34d399; /* emerald-400 */
+      --accent-2: #a78bfa; /* violet-400 */
+      --snake-head: #22c55e; /* green-500 */
+      --snake-body: #86efac; /* green-300 */
+      --grid: rgba(255,255,255,.05);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 10% 10%, #0ea5e9 0%, transparent 60%),
+                  radial-gradient(1000px 700px at 90% 20%, #8b5cf6 0%, transparent 60%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: #e5e7eb;
+      overflow: hidden;
+    }
+
+    /* Decorative soft grid */
+    .grid-overlay {
+      position: fixed; inset: 0;
+      background-image: linear-gradient(to right, var(--grid) 1px, transparent 1px),
+                        linear-gradient(to bottom, var(--grid) 1px, transparent 1px);
+      background-size: 24px 24px;
+      pointer-events: none;
+      mask-image: radial-gradient(circle at 50% 40%, rgba(0,0,0,.7), transparent 70%);
+    }
+
+    .hud {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      display: flex; align-items: center; gap: 14px;
+      padding: 10px 14px; border-radius: 16px;
+      background: var(--glass);
+      backdrop-filter: blur(10px) saturate(140%);
+      box-shadow: var(--shadow);
+      user-select: none;
+    }
+    .hud h1 { margin: 0; font-size: 18px; letter-spacing: .5px; font-weight: 700; }
+    .pill { padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); }
+    .score { font-weight: 700; }
+
+    button {
+      border: 1px solid rgba(255,255,255,.12);
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+      color: #fff; padding: 8px 12px; border-radius: 12px; cursor: pointer;
+      font-weight: 600; letter-spacing: .3px; box-shadow: var(--shadow);
+    }
+    button:hover { filter: brightness(1.1); }
+
+    #game {
+      position: fixed; inset: 0; width: 100vw; height: 100vh; display: block;
+    }
+
+    /* Tooltip bottom-right */
+    .help {
+      position: fixed; right: 16px; bottom: 16px;
+      opacity: .85; font-size: 14px;
+      background: var(--glass); border: 1px solid rgba(255,255,255,.1);
+      padding: 8px 10px; border-radius: 12px; backdrop-filter: blur(8px);
+    }
+  :root{
+    --sky-top:#6ec6ff;
+    --sky-bottom:#cfeeff;
+    --ground:#2e7d32;
+    --house-front:#ffd9c2;
+    --house-side:#f2b8a0;
+    --roof:#b71c1c;
+    --window-off:#accbe0;
+    --window-on:#fff3a1;
+    --lamp-on:#ffec99;
+    --lamp-off:#bdbdbd;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:linear-gradient(to bottom, var(--sky-top) 0%, var(--sky-bottom) 65%, #9ad67b 65%);
+    font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    overflow:hidden;
+  }
+
+   #gameCanvas {
+      border: 2px solid black;
+      background: url("your-background.png") no-repeat center;
+      background-size: cover;
+      display: block;
+      margin: 0 auto;
+    }
+
+  /* ---------- SKY: clouds + birds ---------- */
+  
+  .cloud {
+    position: absolute;
+    top: 8%;
+    width: 220px;
+    height: 80px;
+    background: radial-gradient(circle at 30% 30%, #fff, #f0f0f0);
+    border-radius: 50%;
+    opacity: 0.95;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+    animation: cloudFloat 15s linear infinite;
+
+    /* Make it more cloud-like using pseudo-elements */
+}
+.cloud::before,
+.cloud::after {
+    content: '';
+    position: absolute;
+    background: radial-gradient(circle at 30% 30%, #fff, #f0f0f0);
+    border-radius: 50%;
+}
+
+.cloud::before {
+    width: 120px;
+    height: 120px;
+    top: -30px;
+    left: 10px;
+}
+
+.cloud::after {
+    width: 100px;
+    height: 100px;
+    top: -20px;
+    right: 10px;
+}
+
+/* Cloud floating animation */
+@keyframes cloudFloat {
+    0% { transform: translateX(0); }
+    50% { transform: translateX(20px); }
+    100% { transform: translateX(0); }
+}
+
+  .cloud.c2{ top:14%; left:40%; transform:scale(.85); animation-duration:38s; }
+  .cloud.c3{ top:18%; left:-20%; transform:scale(1.05); animation-duration:46s; opacity:.9; }
+
+  @keyframes cloudFloat{
+    from{ transform: translateX(-40vw) }
+    to  { transform: translateX(140vw) }
+  }
+.bird {
+    position: absolute;
+    left: -12vw;
+    top: var(--y, 14vh);
+    width: 20px;
+    height: 20px;
+    transform: scale(var(--scale,1));
+    animation: fly linear infinite;
+    animation-duration: var(--speed, 12s);
+}
+
+.bird-body {
+    width: 20px;
+    height: 10px;
+    background: black;
+    border-radius: 50% 50% 40% 40%;
+    position: relative;
+    top: 5px;
+    left: 0;
+}
+
+.bird-wing {
+    width: 12px;
+    height: 8px;
+    background: black;
+    border-radius: 50% 50% 0 0;
+    position: absolute;
+    top: 0;
+    transform-origin: bottom center;
+    animation: flap 0.5s ease-in-out infinite alternate;
+}
+
+.bird-wing.left {
+    left: -6px;
+}
+
+.bird-wing.right {
+    right: -6px;
+    transform-origin: bottom center;
+    animation-delay: 0.25s; /* offset for natural flapping */
+}
+
+/* Flap animation */
+@keyframes flap {
+    0% { transform: rotate(20deg); }
+    50% { transform: rotate(-30deg); }
+    100% { transform: rotate(20deg); }
+}
+
+/* Flying across screen */
+@keyframes fly {
+    0% { transform: translateX(0) translateY(0) scale(var(--scale,1)); }
+    50% { transform: translateX(50vw) translateY(-20px) scale(var(--scale,1)); }
+    100% { transform: translateX(100vw) translateY(0) scale(var(--scale,1)); }
+}
+
+  .bird:before,.bird:after{
+    content:""; position:absolute; top:50%; left:50%;
+    width:50%; height:3px; background:#222; transform-origin:left center;
+  }
+  .bird:before{ transform:rotate(-28deg) translateX(-100%); }
+  .bird:after { transform:rotate(28deg); }
+  @keyframes fly{ from{ left:-20vw } to{ left:120vw } }
+
+  /* ---------- GROUND ---------- */
+  .ground{
+    position:absolute; left:0; right:0; bottom:0; height:36vh;
+    background:linear-gradient(#2e7d32 0%, #256029 100%);
+    box-shadow: inset 0 -80px 80px rgba(0,0,0,.06);
+  }
+
+  /* subtle distant hill */
+  .hill{
+    position:absolute; left:8%; right:8%; bottom:28vh; height:18vh;
+    background: radial-gradient(ellipse at center, rgba(110,176,110,.9) 0%, rgba(110,176,110,0.45) 60%);
+    border-radius:50%;
+    filter:blur(0.5px);
+    opacity:.95;
+  }
+
+  /* ---------- HOUSE (fake 3D: front + side) ---------- */
+  .scene-center{
+    position:absolute;
+    left:50%; transform:translateX(-50%);
+    bottom:22vh;
+    width:640px; height:320px; pointer-events:none;
+  }
+
+  .house {
+    position:absolute;
+    bottom:0; left:50%; transform:translateX(-50%);
+    width:360px; height:220px;
+    transform-style:preserve-3d;
+    pointer-events:auto;
+  }
+
+  /* front face */
+  .house .front{
+    position:absolute; left:0; bottom:0;
+    width:240px; height:180px;
+    background:var(--house-front);
+    border-radius:8px;
+    box-shadow: 0 8px 0 rgba(0,0,0,.06);
+    border:3px solid rgba(0,0,0,.06);
+  }
+
+  /* right side skewed to look 3D */
+
+
+  /* roof (two faces) */
+  .roof-front{
+    position:absolute; left:-10px; bottom:170px; width:260px; height:80px;
+    background:var(--roof);
+    clip-path: polygon(0 100%, 50% 0, 100% 100%);
+    box-shadow: 0 8px 0 rgba(0,0,0,.08);
+  }
+  
+
+  /* door and knob */
+  .door{
+    position:absolute; left:28px; bottom:0; width:64px; height:102px;
+    background:linear-gradient(#5d4037, #6d4c41);
+    border-radius:6px;
+    box-shadow: inset 0 6px 0 rgba(255,255,255,.04);
+  }
+  .knob{ position:absolute; right:10px; top:50%; width:8px; height:8px; background:#ffd95e; border-radius:50%; }
+
+  /* window (lights up when lamp on) */
+  .window{
+    position:absolute; right:32px; bottom:62px; width:84px; height:64px;
+    background:var(--window-off);
+    border-radius:6px; border:4px solid rgba(13,71,161,.18);
+    box-shadow: inset -6px -6px 18px rgba(255,255,255,0.25);
+    transition: background .35s, box-shadow .35s, filter .35s;
+  }
+  /* window panes */
+  .window::before, .window::after{
+    content:""; position:absolute; background:rgba(13,71,161,.14);
+  }
+  .window::before{ height:100%; width:4px; left:50%; top:0; transform:translateX(-50%); }
+  .window::after{ width:100%; height:4px; left:0; top:50%; transform:translateY(-50%); }
+
+  /* when body has class 'lit', windows glow */
+  .lit .window{
+    background:var(--window-on);
+    box-shadow: 0 0 40px 8px rgba(255,240,150,.6), inset -6px -6px 18px rgba(255,255,255,.6);
+    filter:brightness(1.05);
+  }
+
+  /* ---------- lamp (attached to house-right) ---------- */
+  .lamp-wrap{
+    position:absolute; right:calc(150px - 110px); /* align near house right */
+    bottom:24vh; width:170px; height:240px; pointer-events:auto;
+    display:flex; flex-direction:column; align-items:center;
+    transform:translateX(40px);
+  }
+
+
+
+  .shade{
+    width:150px; height:110px; background:var(--lamp-off);
+    border-radius:70px 70px 40px 40px; display:flex; align-items:center; justify-content:center;
+    position:relative; top:-10px; transition: background .35s, box-shadow .35s, transform .25s;
+    box-shadow: inset 0 -8px rgba(255,255,255,.12);
+  }
+
+  /* happy/sad faces */
+  .eye{ width:14px; height:14px; background:#2b2b2b; border-radius:50%; position:absolute; top:36px; }
+  .eye.left{ left:42px } .eye.right{ right:42px }
+  .smile{
+    width:52px; height:28px; border-bottom:3px solid #2b2b2b; border-radius:0 0 48px 48px;
+    position:absolute; bottom:26px;
+  }
+  .sad{
+    width:52px; height:28px; border-top:3px solid #2b2b2b; border-radius:48px 48px 0 0;
+    position:absolute; bottom:18px; transform:translateY(6px);
+    opacity:0;
+  }
+
+  /* ON state */
+  .lamp.on .shade{
+    background:var(--lamp-on);
+    box-shadow: 0 0 64px 28px rgba(255,240,150,.25), inset 0 -8px rgba(255,255,255,.18);
+    transform:translateY(-6px);
+  }
+  .lamp.on .smile{ opacity:1; }
+  .lamp.on .sad{ opacity:0; }
+
+  /* OFF state */
+  .lamp:not(.on) .shade{ background:var(--lamp-off); box-shadow:none; transform:none; }
+  .lamp:not(.on) .smile{ opacity:0; }
+  .lamp:not(.on) .sad{ opacity:1; }
+
+  /* button placed below base (like on the floor under base) */
+  .lamp-btn{
+    position:absolute;
+    top:calc(130% - 6px);
+    left:50%;
+    transform:translateX(-50%);
+    margin-top:10px;
+    padding:10px 16px;
+    border-radius:10px;
+    border: none;
+    background: #1976d2;
+    color:white;
+    cursor:pointer;
+    font-weight:600;
+    box-shadow: 0 6px 14px rgba(0,0,0,.18);
+  }
+  .lamp-btn:active{ transform:translateX(-50%) translateY(2px); }
+
+  /* Flower styling */
+.flower {
+    position: absolute;
+    bottom: 18vh;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: bloom 2s ease-in-out infinite alternate;
+}
+
+.flower .petal {
+    position: absolute;
+    width: 20px;
+    height: 40px;
+    border-radius: 50% 50% 0 0;
+    background: radial-gradient(circle at 50% 30%, var(--color1), var(--color2));
+    transform-origin: bottom center;
+}
+
+.flower .petal:nth-child(1) { transform: rotate(0deg); }
+.flower .petal:nth-child(2) { transform: rotate(45deg); }
+.flower .petal:nth-child(3) { transform: rotate(90deg); }
+.flower .petal:nth-child(4) { transform: rotate(135deg); }
+.flower .petal:nth-child(5) { transform: rotate(180deg); }
+.flower .petal:nth-child(6) { transform: rotate(225deg); }
+.flower .petal:nth-child(7) { transform: rotate(270deg); }
+.flower .petal:nth-child(8) { transform: rotate(315deg); }
+
+.flower .center {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, #ffeb3b, #fbc02d);
+}
+
+/* Bloom animation */
+@keyframes bloom {
+    0% { transform: scale(0.8); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+
+/* Fruits */
+.fruit {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: var(--fruit-color);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Snack pieces */
+.snack {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #f4c542;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+#gameCanvas {
+  width: 100vw;   /* full width of the viewport */
+  height: 100vh;  /* full height of the viewport */
+  display: block;
+}
+
+
+
+  
+  /* responsive tweak */
+  @media (max-width:800px){
+    .scene-center{ transform:translateX(-50%) scale(.85); left:50% }
+    .lamp-wrap{ right:5%; transform:translateX(0) scale(.9); }
+  }
+</style>
+</head>
+<body>
+     <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+  <!-- SKY -->
+  <div class="sun"></div>
+  <div class="cloud c1" style="left:-24vw"></div>
+  <div class="cloud c2" style="left:10vw"></div>
+  <div class="cloud c3" style="left:60vw"></div>
+
+  <!-- flying birds -->
+  <div class="bird" style="--y:10vh; --speed:20s; --scale:1;"></div>
+  <div class="bird" style="--y:18vh; --speed:26s; --scale:.9;"></div>
+  <div class="bird" style="--y:22vh; --speed:18s; --scale:1.1;"></div>
+
+  <div class="ground"></div>
+  <div class="front-shadow"></div>
+
+  <!-- center scene (house + lamp) -->
+  <div class="scene-center" aria-hidden="false">
+
+    <div class="house" id="house">
+      <div class="front">
+        <div class="door"><div class="knob"></div></div>
+        <div class="window" id="window"></div>
+      </div>
+
+      <div class="side"></div>
+      <div class="roof-front"></div>
+      <div class="roof-side"></div>
+
+      <!-- Lamp attached visually near the house-right (but in center container) -->
+      <div class="lamp-wrap" style="pointer-events:auto;">
+        <div class="lamp" id="lamp">
+          <div class="shade">
+            <div class="eye left"></div>
+            <div class="eye right"></div>
+            <div class="smile"></div>
+            <div class="sad"></div>
+          </div>
+          <div class="lamp-stand"></div>
+          <div class="lamp-base"></div>
+
+          <!-- button under base -->
+          <button class="lamp-btn" id="lampBtn" aria-pressed="false">Light ON</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- flowers -->
+    <!-- Flowers in front -->
+<div class="flower" style="left:10%; --color1:#ff7eb6; --color2:#ffa26e;"></div>
+<div class="flower" style="left:25%; --color1:#ffcc7e; --color2:#ffd36e;"></div>
+<div class="flower" style="left:40%; --color1:#a0e7e5; --color2:#b4f8c8;"></div>
+
+<!-- Fruits on the grass -->
+<div class="fruit" style="left:15%; bottom:18vh; --fruit-color:#ff4d4d;"></div>
+<div class="fruit" style="left:35%; bottom:18vh; --fruit-color:#ffa500;"></div>
+<div class="fruit" style="left:50%; bottom:18vh; --fruit-color:#ffcc00;"></div>
+
+<!-- Snack pieces scattered -->
+<div class="snack" style="left:20%; bottom:15vh;"></div>
+<div class="snack" style="left:45%; bottom:12vh;"></div>
+<div class="snack" style="left:60%; bottom:16vh;"></div>
+<div class="flower" style="--color1: #ff5e5e; --color2: #ff9999;">
+    <div class="petal"></div>
+    <div class="petal"></div>
+    <div class="petal"></div>
+    <div class="petal"></div>
+    <div class="petal"></div>
+    <div class="petal"></div>
+    <div class="petal"></div>
+    <div class="petal"></div>
+    <div class="center"></div>
+</div>
+
+
+
+<script>
+    
+    
+
+   
+  // initial state: lamp ON by default
+  const lamp = document.getElementById('lamp');
+  const btn = document.getElementById('lampBtn');
+  const body = document.body;
+
+  // start with lamp ON
+  lamp.classList.add('on');
+  body.classList.add('lit');
+  btn.textContent = 'Light ON';
+  btn.setAttribute('aria-pressed','true');
+
+  btn.addEventListener('click', () => {
+    const isOn = lamp.classList.toggle('on');
+    // toggle overall "lit" class to affect window glow
+    if(isOn) body.classList.add('lit'); else body.classList.remove('lit');
+
+    // update button label & aria
+    btn.textContent = isOn ? 'Light ON' : 'Light OFF';
+    btn.setAttribute('aria-pressed', String(isOn));
+  });
+</script>
+
+</body>
+</html>
