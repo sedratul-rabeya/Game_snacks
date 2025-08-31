@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bloom Snake with Light System</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      transition: background 0.5s;
+      padding-top: 20px;
+    }
+    body.lit { background: linear-gradient(120deg, #d4fc79, #96e6a1); }
+    body.dark { background: radial-gradient(circle, #222 40%, #000 100%); }
+    h1 { color: white; margin: 10px 0; }
+    #controls { margin-bottom: 10px; }
+    #lampBtn {
+      padding: 8px 16px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
+      background: #ffdf5d; box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #lampBtn.off { background: #555; color: white; }
+    canvas {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid white;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+    #score { color: white; margin: 10px; font-size: 18px; }
+    #restartBtn {
+      margin-top: 10px; padding: 6px 14px; border: none; border-radius: 8px;
+      background: #00c9ff; color: white; font-size: 15px; cursor: pointer;
+    }
+    /* Leaderboard */
+    #boardWrap {
+      width: 600px; max-width: 90vw; margin: 18px auto 30px;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 10px; padding: 12px 16px; color: white;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+    }
+    #boardTitle { margin: 0 0 8px; font-size: 18px; }
+    #leaderboard { list-style: none; padding-left: 0; margin: 0; }
+    #leaderboard li {
+      display: flex; justify-content: space-between; padding: 6px 8px;
+      border-bottom: 1px dashed rgba(255,255,255,0.3);
+    }
+    #leaderboard li:last-child { border-bottom: none; }
+  </style>
+</head>
+<body class="lit">
+  <div id="controls">
+    <button id="lampBtn">Light ON</button>
+  </div>
+  <h1>🌸 Bloom Snake 🌸</h1>
+
+  <canvas id="game" width="600" height="400"></canvas>
+  <div id="score">Score: 0</div>
+  <button id="restartBtn">Restart</button>
+
+  <div id="boardWrap">
+    <h3 id="boardTitle">🏆 Leaderboard (Top 10)</h3>
+    <ol id="leaderboard"></ol>
+  </div>
+
+  <script>
+    // ====== API helper ======
+    const API_BASE = ""; // Flask দিয়ে serve করলে same-origin. ফাইল ডাবল-ক্লিক করে খুলবে না—সার্ভার থেকে ওপেন করবে।
+    async function saveScore(name, score) {
+      try {
+        const res = await fetch(`${API_BASE}/submit_score`, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({ name, score })
+        });
+        return await res.json();
+      } catch (e) {
+        console.error(e);
+        return { ok: false, error: "Network error" };
+      }
+    }
+    async function getScores(limit = 10) {
+      try {
+        const res = await fetch(`${API_BASE}/get_scores?limit=${limit}`);
+        return await res.json();
+      } catch (e) {
+        console.error(e);
+        return { ok: false, scores: [] };
+      }
+    }
+    function renderScores(list) {
+      const ol = document.getElementById("leaderboard");
+      ol.innerHTML = "";
+      list.forEach((row, i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span>${i+1}. ${row.name}</span><strong>${row.score}</strong>`;
+        ol.appendChild(li);
+      });
+    }
+
+    // ====== UI: light system ======
+    const lampBtn = document.getElementById("lampBtn");
+    const body = document.body;
+    lampBtn.addEventListener("click", () => {
+      if (body.classList.contains("lit")) {
+        body.classList.remove("lit"); body.classList.add("dark");
+        lampBtn.textContent = "Light OFF"; lampBtn.classList.add("off");
+      } else {
+        body.classList.remove("dark"); body.classList.add("lit");
+        lampBtn.textContent = "Light ON"; lampBtn.classList.remove("off");
+      }
+    });
+
+    // ====== Game ======
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score");
+    const restartBtn = document.getElementById("restartBtn");
+
+    const box = 20;
+    let snake, fruit, flower, direction, score, game, gameOverFlag;
+
+    function init() {
+      snake = [{ x: 9 * box, y: 10 * box }];
+      direction = null;
+      score = 0;
+      gameOverFlag = false;
+      fruit = spawnItem();
+      flower = spawnItem();
+      if (game) clearInterval(game);
+      game = setInterval(draw, 120);
+      scoreEl.textContent = "Score: 0";
+    }
+
+    function spawnItem() {
+      return {
+        x: Math.floor(Math.random() * (canvas.width/box)) * box,
+        y: Math.floor(Math.random() * (canvas.height/box)) * box
+      };
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+      else if (e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+      else if (e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+      else if (e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+    });
+
+    function endGame() {
+      if (gameOverFlag) return;
+      gameOverFlag = true;
+      clearInterval(game);
+
+      const defaultName = localStorage.getItem("playerName") || "Player";
+      const name = prompt("Enter your name for the leaderboard:", defaultName);
+      if (name && name.trim()) {
+        localStorage.setItem("playerName", name.trim());
+        saveScore(name.trim(), score).then(() => {
+          getScores(10).then((data) => {
+            if (data.ok) renderScores(data.scores);
+            alert("Game Over! 🌙 Your score: " + score);
+          });
+        });
+      } else {
+        alert("Game Over! 🌙 Your score: " + score);
+      }
+    }
+
+    async function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // draw snake
+      for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = i === 0 ? "green" : "lightgreen";
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+        ctx.strokeStyle = "darkgreen";
+        ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+      }
+
+      // fruit & flower
+      ctx.fillStyle = "black";
+      ctx.font = "20px Arial";
+      ctx.fillText("🍎", fruit.x, fruit.y + box);
+      ctx.fillText("🌸", flower.x, flower.y + box);
+    
+
+
+
+      // head
+      let snakeX = snake[0].x;
+      let snakeY = snake[0].y;
+
+      if (direction === "LEFT") snakeX -= box;
+      if (direction === "UP") snakeY -= box;
+      if (direction === "RIGHT") snakeX += box;
+      if (direction === "DOWN") snakeY += box;
+
+      // eat fruit
+      if (snakeX === fruit.x && snakeY === fruit.y) {
+        score += 1;
+        fruit = spawnItem();
+      }
+      // eat flower
+      else if (snakeX === flower.x && snakeY === flower.y) {
+        score += 3;
+        flower = spawnItem();
+      } else {
+        snake.pop();
+      }
+
+      const newHead = { x: snakeX, y: snakeY };
+
+      // wall hit
+      if (snakeX < 0 || snakeY < 0 || snakeX >= canvas.width || snakeY >= canvas.height) {
+        endGame();
+        return;
+      }
+      // self hit
+      for (let i = 0; i < snake.length; i++) {
+        if (snake[i].x === newHead.x && snake[i].y === newHead.y) {
+          endGame();
+          return;
+        }
+      }
+
+      snake.unshift(newHead);
+      scoreEl.textContent = "Score: " + score;
+    }
+
+    restartBtn.addEventListener("click", init);
+
+    // first load
+    init();
+    // load leaderboard initially
+    getScores(10).then(d => { if (d.ok) renderScores(d.scores); });
+    // periodic refresh (optional)
+    setInterval(() => getScores(10).then(d => { if (d.ok) renderScores(d.scores); }), 5000);
+  </script>
+</body>
+</html>
