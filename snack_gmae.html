@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -203,3 +204,209 @@
   </script>
 </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Bloom Snake with Light System</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      transition: background 0.5s;
+    }
+
+    body.lit {
+      background: linear-gradient(120deg, #d4fc79, #96e6a1);
+    }
+
+    body.dark {
+      background: radial-gradient(circle, #222 40%, #000 100%);
+    }
+
+    h1 {
+      color: white;
+      margin: 10px 0;
+    }
+
+    #controls {
+      margin-bottom: 10px;
+    }
+
+    #lampBtn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      background: #ffdf5d;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    #lampBtn.off {
+      background: #555;
+      color: white;
+    }
+
+    canvas {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid white;
+      box-shadow: 0 0 15px rgba(0,0,0,0.5);
+    }
+
+    #score {
+      color: white;
+      margin: 10px;
+      font-size: 18px;
+    }
+
+    #restartBtn {
+      margin-top: 10px;
+      padding: 6px 14px;
+      border: none;
+      border-radius: 8px;
+      background: #00c9ff;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body class="lit">
+  <div id="controls">
+    <button id="lampBtn">Light ON</button>
+  </div>
+  <h1>🌸 Bloom Snake 🌸</h1>
+  <canvas id="game" width="600" height="400"></canvas>
+  <div id="score">Score: 0</div>
+  <button id="restartBtn">Restart</button>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const scoreEl = document.getElementById("score");
+    const restartBtn = document.getElementById("restartBtn");
+    const lampBtn = document.getElementById("lampBtn");
+    const body = document.body;
+
+    // light system
+    lampBtn.addEventListener("click", () => {
+      if (body.classList.contains("lit")) {
+        body.classList.remove("lit");
+        body.classList.add("dark");
+        lampBtn.textContent = "Light OFF";
+        lampBtn.classList.add("off");
+      } else {
+        body.classList.remove("dark");
+        body.classList.add("lit");
+        lampBtn.textContent = "Light ON";
+        lampBtn.classList.remove("off");
+      }
+    });
+
+    const box = 20;
+    let snake, fruit, flower, direction, score, game;
+
+    function init() {
+      snake = [{ x: 9 * box, y: 10 * box }];
+      direction = null;
+      score = 0;
+      fruit = spawnItem();
+      flower = spawnItem();
+      if (game) clearInterval(game);
+      game = setInterval(draw, 120);
+    }
+
+    function spawnItem() {
+      return {
+        x: Math.floor(Math.random() * (canvas.width/box)) * box,
+        y: Math.floor(Math.random() * (canvas.height/box)) * box
+      };
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" && direction !== "RIGHT") direction = "LEFT";
+      else if (e.key === "ArrowUp" && direction !== "DOWN") direction = "UP";
+      else if (e.key === "ArrowRight" && direction !== "LEFT") direction = "RIGHT";
+      else if (e.key === "ArrowDown" && direction !== "UP") direction = "DOWN";
+    });
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // draw snake
+      for (let i = 0; i < snake.length; i++) {
+        ctx.fillStyle = i === 0 ? "green" : "lightgreen";
+        ctx.fillRect(snake[i].x, snake[i].y, box, box);
+        ctx.strokeStyle = "darkgreen";
+        ctx.strokeRect(snake[i].x, snake[i].y, box, box);
+      }
+
+      // draw fruit 🍎
+      ctx.fillStyle = "red";
+      ctx.font = "20px Arial";
+      ctx.fillText("🍎", fruit.x, fruit.y + box);
+
+      // draw flower 🌸
+      ctx.fillText("🌸", flower.x, flower.y + box);
+
+      // snake head
+      let snakeX = snake[0].x;
+      let snakeY = snake[0].y;
+
+      if (direction === "LEFT") snakeX -= box;
+      if (direction === "UP") snakeY -= box;
+      if (direction === "RIGHT") snakeX += box;
+      if (direction === "DOWN") snakeY += box;
+
+      // eat fruit
+      if (snakeX === fruit.x && snakeY === fruit.y) {
+        score += 1;
+        fruit = spawnItem();
+      } 
+      // eat flower
+      else if (snakeX === flower.x && snakeY === flower.y) {
+        score += 3;
+        flower = spawnItem();
+      } 
+      else {
+        snake.pop();
+      }
+
+      let newHead = { x: snakeX, y: snakeY };
+
+      // game over: hit wall
+      if (
+        snakeX < 0 || snakeY < 0 ||
+        snakeX >= canvas.width || snakeY >= canvas.height
+      ) {
+        clearInterval(game);
+        alert("Game Over! 🌙");
+      }
+
+      // game over: hit self
+      for (let i = 0; i < snake.length; i++) {
+        if (snake[i].x === newHead.x && snake[i].y === newHead.y) {
+          clearInterval(game);
+          alert("Game Over! 🌙");
+        }
+      }
+
+      snake.unshift(newHead);
+
+      scoreEl.textContent = "Score: " + score;
+    }
+
+    restartBtn.addEventListener("click", init);
+
+    init();
+  </script>
+</body>
+</html>
+>>>>>>> ce6d242ccaa683a3753e1495d223fe503f8ac688

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -290,3 +291,297 @@
   </script>
 </body>
 </html>
+=======
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cute Lamp & House Scene</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to top, #78d0f4 0%, #b3e9ff 100%);
+    }
+    /* Ground */
+.ground {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 35vh;
+  background: #2e7d32;
+}
+
+    /* SCENE */
+    .scene {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* SUN */
+    .sun {
+      position: absolute;
+      top: 40px;
+      left: 40px;
+      width: 100px;
+      height: 100px;
+      background: radial-gradient(circle, #fff9c4 0%, #ffeb3b 70%);
+      border-radius: 50%;
+      box-shadow: 0 0 60px #fff59d;
+    }
+
+    /* HOUSE */
+   
+    .house {
+  position: absolute;
+  bottom: 20vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  height: 200px;
+  background: #ffe0b2;
+  border: 4px solid #5d4037;
+  border-radius: 5px;
+}
+
+  
+    .roof {
+  position: absolute;
+  top: -80px;
+  left: -20px;
+  width: 320px;
+  height: 80px;
+  background: #b71c1c;
+  clip-path: polygon(0 100%, 50% 0, 100% 100%);
+}
+
+    .door {
+      position: absolute;
+      bottom: 0;
+      left: 30px;
+      width: 60px;
+      height: 100px;
+      background: #6d4c41;
+      border: 3px solid #4e342e;
+      border-radius: 3px;
+    }
+   .window {
+  position: absolute;
+  top: 40px;
+  right: 30px;
+  width: 80px;
+  height: 60px;
+  background: #bbdefb;
+  border: 3px solid #0d47a1;
+  border-radius: 4px;
+  box-shadow: inset -4px -4px 10px rgba(255,255,255,0.5);
+}
+
+
+    
+
+    /* FLOWERS */
+    .flower {
+      position: absolute;
+      bottom: 60px;
+      width: 20px;
+      height: 80px;
+      background: #2e7d32;
+      left: var(--x);
+    }
+
+    .flower-head {
+      position: absolute;
+      top: -20px;
+      left: -15px;
+      width: 50px;
+      height: 50px;
+      background: pink;
+      border-radius: 50%;
+      box-shadow: -25px 0 pink, 25px 0 pink, 0 -25px pink, 0 25px pink;
+    }
+
+    .flower-center {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: yellow;
+      border-radius: 50%;
+      top: 15px;
+      left: 15px;
+    }
+
+    /* LAMP (on side of house) */
+    .lamp {
+      position: absolute;
+      right: -120px; /* side placement */
+      top: 40px;
+      width: 100px;
+      text-align: center;
+      transition: all 0.5s ease;
+    }
+    .stand {
+  width: 10px;
+  height: 120px;
+  background: #757575;
+}
+ 
+    .shade {
+      width: 100px;
+      height: 80px;
+      background: #ffc98b;
+      border-radius: 50% 50% 40% 40%;
+      position: relative;
+      transition: background 0.5s, box-shadow 0.5s;
+    }
+
+    .eye {
+      width: 12px;
+      height: 12px;
+      background: black;
+      border-radius: 50%;
+      position: absolute;
+      top: 25px;
+    }
+    .eye.left { left: 25px; }
+    .eye.right { right: 25px; }
+
+    .smile {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      width: 40px;
+      height: 20px;
+      border-bottom: 3px solid black;
+      border-radius: 0 0 40px 40px;
+      transform: translateX(-50%);
+    }
+
+    .stand {
+      width: 10px;
+      height: 60px;
+      background: #888;
+      margin: auto;
+    }
+
+    /* ON State */
+    .on .shade {
+      background: #ffec99;
+      box-shadow: 0 0 40px 20px #fff9c4;
+    }
+
+    /* BUTTON */
+    .controls {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      background: #1976d2;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1565c0;
+    }
+
+    /* BIRDS */
+    .bird {
+      position: absolute;
+      top: var(--y, 10vh);
+      left: -10vw;
+      width: 40px;
+      height: 20px;
+      animation: fly linear infinite;
+      animation-duration: var(--speed, 18s);
+    }
+    .bird:before, .bird:after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 50%;
+      height: 2px;
+      background: #222;
+      transform-origin: left center;
+    }
+    .bird:before {
+      transform: rotate(-25deg) translateX(-100%);
+    }
+    .bird:after {
+      transform: rotate(25deg);
+    }
+    @keyframes fly {
+      from { left: -15vw; }
+      to { left: 120vw; }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <div class="sun"></div>
+
+    <!-- House -->
+    <div class="house">
+      <div class="roof"></div>
+      <div class="door"></div>
+      <div class="window"></div>
+
+      <!-- Lamp on the side -->
+      <div class="lamp on" id="lamp">
+        <div class="shade">
+          <div class="eye left"></div>
+          <div class="eye right"></div>
+          <div class="smile"></div>
+        </div>
+        <div class="stand"></div>
+      </div>
+    </div>
+   
+
+
+    <!-- Flowers -->
+    <div class="flower" style="--x:20%;">
+      <div class="flower-head"><div class="flower-center"></div></div>
+    </div>
+    <div class="flower" style="--x:40%;">
+      <div class="flower-head" style="background:orange; box-shadow:-25px 0 orange,25px 0 orange,0 -25px orange,0 25px orange;">
+        <div class="flower-center"></div>
+      </div>
+    </div>
+    <div class="flower" style="--x:70%;">
+      <div class="flower-head" style="background:purple; box-shadow:-25px 0 purple,25px 0 purple,0 -25px purple,0 25px purple;">
+        <div class="flower-center"></div>
+      </div>
+    </div>
+
+    <!-- Birds -->
+    <div class="bird" style="--y:15vh; --speed:20s;"></div>
+    <div class="bird" style="--y:25vh; --speed:25s;"></div>
+    <div class="bird" style="--y:12vh; --speed:16s;"></div>
+  </div>
+
+  <!-- Button Control -->
+  <div class="controls">
+    <button onclick="toggleLamp()">Toggle Lamp</button>
+  </div>
+
+  <script>
+    function toggleLamp(){
+      document.getElementById("lamp").classList.toggle("on");
+    }
+  </script>
+</body>
+</html>
+>>>>>>> ce6d242ccaa683a3753e1495d223fe503f8ac688
