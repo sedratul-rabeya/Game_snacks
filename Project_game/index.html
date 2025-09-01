@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bloom Snake — Fruits & Flowers</title>
+  <style>
+    :root {
+      --bg1: #0f172a;   /* slate-900 */
+      --bg2: #1e293b;   /* slate-800 */
+      --glass: rgba(255,255,255,.08);
+      --accent: #34d399; /* emerald-400 */
+      --accent-2: #a78bfa; /* violet-400 */
+      --snake-head: #22c55e; /* green-500 */
+      --snake-body: #86efac; /* green-300 */
+      --grid: rgba(255,255,255,.05);
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+  body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 600px at 10% 10%, #0ea5e9 0%, transparent 60%),
+                  radial-gradient(1000px 700px at 90% 20%, #8b5cf6 0%, transparent 60%),
+                  linear-gradient(180deg, var(--bg1), var(--bg2));
+      color: #e5e7eb;
+      overflow: hidden;
+    }
+
+    canvas{display:block;}
+
+    .hud{position:fixed;
+         top:16px; 
+         left:50%; 
+         transform:translateX(-50%); 
+         background:var(--glass); 
+         padding:10px 14px; 
+         border-radius:16px; 
+         box-shadow:var(--shadow);
+        }
+    button{
+      margin-left:10px;
+      padding:5px 10px;
+      border-radius:10px;
+      background:#34d399;
+      border:none;
+      color:#000;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .leaderboard{
+      position:fixed; 
+      top:16px;
+       right:16px; 
+       background:var(--glass); 
+       padding:10px; 
+       border-radius:12px; 
+       max-width:180px;
+      }
+    .leaderboard h2{
+      margin:0 0 5px 0;
+      font-size:16px;
+    }
+    .leaderboard table{
+      width:100%; 
+      border-collapse:collapse;
+    }
+    .leaderboard td, .leaderboard th{
+      border:1px solid rgba(255,255,255,.3);
+      padding:2px 4px;
+      text-align:center;
+      font-size:14px;}
+    input{padding:4px 6px;
+      border-radius:6px;
+      border:none; 
+      margin-right:5px;
+    }
+  </style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="hud">
+  Score: <span id="score">0</span>
+  <input type="text" id="playerName" placeholder="Enter name" />
+  <button id="saveScoreBtn">Save Score</button>
+  <button id="restart">Restart ↻</button>
+</div>
+
+<div class="leaderboard">
+  <h2>Leaderboard</h2>
+  <table>
+    <thead><tr><th>Player</th><th>Score</th></tr></thead>
+    <tbody id="scoreTable"></tbody>
+  </table>
+</div>
+
+<script>
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const restartBtn = document.getElementById('restart');
+const saveScoreBtn = document.getElementById('saveScoreBtn');
+const playerNameInput = document.getElementById('playerName');
+const scoreTable = document.getElementById('scoreTable');
+
+const CELL = 24;
+let snake=[], food, score=0;
+let DIR = {LEFT:{x:-1,y:0}, RIGHT:{x:1,y:0}, UP:{x:0,y:-1}, DOWN:{x:0,y:1}};
+let dir = DIR.RIGHT, nextDir = dir;
+let loop, tickMs = 110;
+
+function fitCanvas(){ canvas.width=Math.floor(window.innerWidth/CELL)*CELL; canvas.height=Math.floor(window.innerHeight/CELL)*CELL; }
+fitCanvas();
+window.addEventListener('resize',()=>{ fitCanvas(); draw(); });
+
+const FRUITS = ['🍎','🍓','🍇','🍉','🍒','🍋','🍑'];
+const FLOWERS = ['🌸','🌼','🌻','🌷'];
+
+function randInt(max){ return Math.floor(Math.random()*max); }
+function cellsWide(){ return canvas.width/CELL|0; }
+function cellsHigh(){ return canvas.height/CELL|0; }
+function randomFreeCell(){ let used=new Set(snake.map(s=>s.x+','+s.y)); let x,y,tries=0; do{x=randInt(cellsWide());y=randInt(cellsHigh());tries++;}while(used.has(x+','+y)&&tries<5000); return {x,y}; }
+function spawnFood(){ const pos=randomFreeCell(); const isFlower=Math.random()<0.35; const emoji=isFlower?FLOWERS[randInt(FLOWERS.length)]:FRUITS[randInt(FRUITS.length)]; return {x:pos.x,y:pos.y,emoji,value:isFlower?2:1}; }
+
+function start(){ const startX=cellsWide()/2|0; const startY=cellsHigh()/2|0; snake=[{x:startX,y:startY},{x:startX-1,y:startY},{x:startX-2,y:startY}]; dir=DIR.RIGHT; nextDir=dir; score=0; scoreEl.textContent=score; food=spawnFood(); restartLoop(); }
+
+function restartLoop(){ if(loop) clearInterval(loop); loop=setInterval(tick,tickMs); }
+
+window.addEventListener('keydown',(e)=>{ 
+  if(e.key==='ArrowLeft' && dir!==DIR.RIGHT) nextDir=DIR.LEFT;
+  else if(e.key==='ArrowRight' && dir!==DIR.LEFT) nextDir=DIR.RIGHT;
+  else if(e.key==='ArrowUp' && dir!==DIR.DOWN) nextDir=DIR.UP;
+  else if(e.key==='ArrowDown' && dir!==DIR.UP) nextDir=DIR.DOWN;
+});
+
+restartBtn.addEventListener('click',start);
+
+function tick(){
+  dir=nextDir; const head=snake[0]; const nx=head.x+dir.x; const ny=head.y+dir.y;
+  if(nx<0||ny<0||nx>=cellsWide()||ny>=cellsHigh()){ gameOver('Hit wall'); return; }
+  for(let s of snake){ if(s.x===nx && s.y===ny){ gameOver('Bite tail'); return; } }
+  snake.unshift({x:nx,y:ny});
+  if(nx===food.x && ny===food.y){ score+=food.value; scoreEl.textContent=score; food=spawnFood(); }else{ snake.pop(); }
+  draw();
+}
+
+function gameOver(reason){ clearInterval(loop); alert(reason+'! Score: '+score); }
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.font=(CELL*0.9)+'px "Apple Color Emoji","Segoe UI Emoji", system-ui';
+  ctx.textBaseline='middle'; ctx.textAlign='center';
+  ctx.fillText(food.emoji, food.x*CELL+CELL/2, food.y*CELL+CELL/2);
+  for(let i=snake.length-1;i>=0;i--){
+    const s=snake[i]; const px=s.x*CELL; const py=s.y*CELL;
+    ctx.fillStyle=i===0?'#22c55e':'#86efac'; ctx.fillRect(px,py,CELL,CELL);
+    ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.strokeRect(px,py,CELL,CELL);
+  }
+}
+
+// ===== Leaderboard =====
+function saveScore(name, points){
+  if(!name){ alert('Enter your name!'); return; }
+  fetch("http://127.0.0.1:5000/add_score",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name,points})
+  }).then(r=>r.json()).then(()=>fetchScores());
+}
+
+function fetchScores(){
+  fetch("http://127.0.0.1:5000/scores")
+    .then(r=>r.json())
+    .then(data=>{
+      scoreTable.innerHTML=''; data.sort((a,b)=>b.points-a.points).forEach(row=>{
+        const tr=document.createElement('tr'); tr.innerHTML=`<td>${row.name}</td><td>${row.points}</td>`; scoreTable.appendChild(tr);
+      });
+    });
+}
+
+saveScoreBtn.addEventListener('click',()=>saveScore(playerNameInput.value,score));
+
+start(); fetchScores();
+</script>
+</body>
+</html>
