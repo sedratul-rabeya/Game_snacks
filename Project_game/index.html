@@ -1,187 +1,501 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bloom Snake — Fruits & Flowers</title>
-  <style>
-    :root {
-      --bg1: #0f172a;   /* slate-900 */
-      --bg2: #1e293b;   /* slate-800 */
-      --glass: rgba(255,255,255,.08);
-      --accent: #34d399; /* emerald-400 */
-      --accent-2: #a78bfa; /* violet-400 */
-      --snake-head: #22c55e; /* green-500 */
-      --snake-body: #86efac; /* green-300 */
-      --grid: rgba(255,255,255,.05);
-      --shadow: 0 10px 30px rgba(0,0,0,.35);
-    }
-    * { box-sizing: border-box; }
-  body {
-      margin: 0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
-      background: radial-gradient(1200px 600px at 10% 10%, #0ea5e9 0%, transparent 60%),
-                  radial-gradient(1000px 700px at 90% 20%, #8b5cf6 0%, transparent 60%),
-                  linear-gradient(180deg, var(--bg1), var(--bg2));
-      color: #e5e7eb;
-      overflow: hidden;
-    }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bloom Snake — Full Game</title>
+<style>
+:root {
+  --bg1: #0f172a;
+  --bg2: #1e293b;
+  --glass: rgba(255,255,255,.08);
+  --accent: #34d399;
+  --accent-2: #a78bfa;
+  --shadow: 0 10px 30px rgba(0,0,0,.35);
+}
+* { box-sizing: border-box; }
+body { 
+  margin:0; 
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; 
+  background: radial-gradient(1200px 600px at 10% 10%, #0ea5e9 0%, transparent 60%), radial-gradient(1000px 700px at 90% 20%, #8b5cf6 0%, transparent 60%), linear-gradient(180deg, var(--bg1), var(--bg2));
+  color:#e5e7eb; overflow:hidden;
+}
+canvas{display:block;}
+.hud {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 16px 24px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 12px;
+}
+.hud input { 
+  padding: 7px 12px;
+  font-size: 12px; }
+.hud button {
+   padding: 7px 12px; 
+   font-size: 10px; 
+   border-radius: 12px; 
+  }
+button { 
+  border:1px solid rgba(255,255,255,.12); 
+  background:linear-gradient(180deg,rgba(255,255,255,.12),rgba(255,255,255,.06)); 
+  color:#fff; 
+  padding:6px 10px; 
+  border-radius:10px; 
+  cursor:pointer; 
+  font-weight:600; 
+  letter-spacing:.3px; 
+  box-shadow:var(--shadow); 
+}
+button:hover{ 
+  filter:brightness(1.1); 
+}
+.leaderboard{
+  position:fixed; 
+  top:16px; 
+  right:16px; 
+  background:var(--glass); 
+  padding:10px;
+  border-radius:12px; 
+  max-width:250px;
+}
+.leaderboard h2{
+  margin:0 0 5px 0;
+  font-size:16px;
+}
+.leaderboard table{
+  width:100%;
+  border-collapse:collapse;
+}
+.leaderboard td,.leaderboard th{
+  border:1px solid rgba(255,255,255,.3); 
+  padding:2px 4px; 
+  text-align:center; 
+  font-size:14px;
+}
+.leaderboard tr.highlight{
+  background: rgba(34,197,94,0.3);
+  font-weight:bold;
+}
+input{
+  padding:4px 6px;
+  border-radius:6px;
+  border:none;
+  margin-right:5px;
+}
 
-    canvas{display:block;}
-
-    .hud{position:fixed;
-         top:16px; 
-         left:50%; 
-         transform:translateX(-50%); 
-         background:var(--glass); 
-         padding:10px 14px; 
-         border-radius:16px; 
-         box-shadow:var(--shadow);
-        }
-    button{
-      margin-left:10px;
-      padding:5px 10px;
-      border-radius:10px;
-      background:#34d399;
-      border:none;
-      color:#000;
-      font-weight:700;
-      cursor:pointer;
-    }
-    .leaderboard{
-      position:fixed; 
-      top:16px;
-       right:16px; 
-       background:var(--glass); 
-       padding:10px; 
-       border-radius:12px; 
-       max-width:180px;
-      }
-    .leaderboard h2{
-      margin:0 0 5px 0;
-      font-size:16px;
-    }
-    .leaderboard table{
-      width:100%; 
-      border-collapse:collapse;
-    }
-    .leaderboard td, .leaderboard th{
-      border:1px solid rgba(255,255,255,.3);
-      padding:2px 4px;
-      text-align:center;
-      font-size:14px;}
-    input{padding:4px 6px;
-      border-radius:6px;
-      border:none; 
-      margin-right:5px;
-    }
-  </style>
+/* Pause Menu */
+#pauseMenu {
+  position: fixed;
+  top:0; left:0; width:100%; height:100%;
+  background: rgba(0,0,0,0.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+#pauseMenuContent {
+  background: #1e293b;
+  padding: 30px 40px;
+  border-radius: 20px;
+  text-align:center;
+  box-shadow: 0 10px 30px rgba(0,0,0,.5);
+}
+#pauseMenuContent h2 { 
+  margin-bottom:20px; 
+  color:#fff; 
+}
+#pauseMenuContent label {
+   display:block;
+   margin:10px 0 5px; 
+   color:#fff; 
+  }
+#pauseMenuContent input, #pauseMenuContent select {
+   margin-bottom:15px;
+   padding:6px 8px; 
+   border-radius:6px;
+    border:none; 
+  }
+#pauseMenuContent button { 
+  margin-top:10px; 
+  }
+</style>
 </head>
 <body>
+
+<audio id="eatSound" src="eating-sound-effect-36186.mp3" preload="auto"></audio>
+<audio id="levelUpSound" src="level-up-289723.mp3" preload="auto"></audio>
+<audio id="gameOverSound" src="game-over-deep-male-voice-clip-352695.mp3" preload="auto"></audio>
+
 <canvas id="game"></canvas>
 
 <div class="hud">
-  Score: <span id="score">0</span>
+  Score: <span id="score">0</span> |
+  Level: <span id="level">1</span>
   <input type="text" id="playerName" placeholder="Enter name" />
   <button id="saveScoreBtn">Save Score</button>
   <button id="restart">Restart ↻</button>
+  <button id="pauseBtn">⏸ Pause</button>
+  <span>Speed:</span>
+  <button id="slower">-</button>
+  <span id="speedLabel">110ms</span>
+  <button id="faster">+</button>
+  <span>Snake Color:</span>
+  <input type="color" id="snakeColorPicker" value="#22c55e">
+  <span>Sound:</span>
+  <input type="checkbox" id="soundToggleHud" checked>
 </div>
 
 <div class="leaderboard">
-  <h2>Leaderboard</h2>
-  <table>
-    <thead><tr><th>Player</th><th>Score</th></tr></thead>
-    <tbody id="scoreTable"></tbody>
-  </table>
+<h2>Leaderboard</h2>
+<table>
+<thead>
+<tr><th>Player</th><th>Score</th><th>Action</th></tr>
+</thead>
+<tbody id="scoreTable"></tbody>
+</table>
+</div>
+
+<!-- Pause Menu -->
+<div id="pauseMenu">
+  <div id="pauseMenuContent">
+    <h2>Pause Menu</h2>
+    <label>
+      <input type="checkbox" id="soundToggle" checked>
+      Sound On
+    </label>
+    <label>
+      Speed:
+      <select id="speedSelect">
+        <option value="50">Fast</option>
+        <option value="110" selected>Normal</option>
+        <option value="200">Slow</option>
+      </select>
+    </label>
+    <label>
+      Snake Color:
+      <input type="color" id="pauseSnakeColor" value="#22c55e">
+    </label>
+    <button id="resumeBtn">Resume</button>
+  </div>
 </div>
 
 <script>
-const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
-const scoreEl = document.getElementById('score');
-const restartBtn = document.getElementById('restart');
-const saveScoreBtn = document.getElementById('saveScoreBtn');
-const playerNameInput = document.getElementById('playerName');
-const scoreTable = document.getElementById('scoreTable');
+// Full game JS
 
-const CELL = 24;
-let snake=[], food, score=0;
-let DIR = {LEFT:{x:-1,y:0}, RIGHT:{x:1,y:0}, UP:{x:0,y:-1}, DOWN:{x:0,y:1}};
-let dir = DIR.RIGHT, nextDir = dir;
-let loop, tickMs = 110;
+const canvas=document.getElementById('game');
+const ctx=canvas.getContext('2d');
+const scoreEl=document.getElementById('score');
+const levelEl=document.getElementById('level');
+const restartBtn=document.getElementById('restart');
+const pauseBtn=document.getElementById('pauseBtn');
+const saveScoreBtn=document.getElementById('saveScoreBtn');
+const playerNameInput=document.getElementById('playerName');
+const scoreTable=document.getElementById('scoreTable');
+const slowerBtn=document.getElementById('slower');
+const fasterBtn=document.getElementById('faster');
+const speedLabel=document.getElementById('speedLabel');
+const snakeColorPicker=document.getElementById('snakeColorPicker');
+const soundToggleHud=document.getElementById('soundToggleHud');
 
+const pauseMenu = document.getElementById('pauseMenu');
+const resumeBtn = document.getElementById('resumeBtn');
+const soundToggle = document.getElementById('soundToggle');
+const speedSelect = document.getElementById('speedSelect');
+const pauseSnakeColor = document.getElementById('pauseSnakeColor');
+
+const eatSound=document.getElementById('eatSound');
+const levelUpSound=document.getElementById('levelUpSound');
+const gameOverSound=document.getElementById('gameOverSound');
+
+const CELL=24;
+let snake=[], food, score=0, level=1, obstacles=[];
+let DIR={LEFT:{x:-1,y:0},RIGHT:{x:1,y:0},UP:{x:0,y:-1},DOWN:{x:0,y:1}};
+let dir=DIR.RIGHT, nextDir=dir;
+let loop, tickMs=110, paused=false, soundOn=true;
+
+let snakeHeadColor = '#22c55e';
+let snakeBodyColor = '#86efac';
+let foodColor = '#fff';
+
+let confettiParticles = [];
+let sparkleParticles = [];
+
+// Canvas setup
 function fitCanvas(){ canvas.width=Math.floor(window.innerWidth/CELL)*CELL; canvas.height=Math.floor(window.innerHeight/CELL)*CELL; }
 fitCanvas();
 window.addEventListener('resize',()=>{ fitCanvas(); draw(); });
 
-const FRUITS = ['🍎','🍓','🍇','🍉','🍒','🍋','🍑'];
-const FLOWERS = ['🌸','🌼','🌻','🌷'];
-
+// Random helpers
 function randInt(max){ return Math.floor(Math.random()*max); }
 function cellsWide(){ return canvas.width/CELL|0; }
 function cellsHigh(){ return canvas.height/CELL|0; }
-function randomFreeCell(){ let used=new Set(snake.map(s=>s.x+','+s.y)); let x,y,tries=0; do{x=randInt(cellsWide());y=randInt(cellsHigh());tries++;}while(used.has(x+','+y)&&tries<5000); return {x,y}; }
-function spawnFood(){ const pos=randomFreeCell(); const isFlower=Math.random()<0.35; const emoji=isFlower?FLOWERS[randInt(FLOWERS.length)]:FRUITS[randInt(FRUITS.length)]; return {x:pos.x,y:pos.y,emoji,value:isFlower?2:1}; }
+function randomFreeCell(){ 
+  let used=new Set(snake.map(s=>s.x+','+s.y)); 
+  let x,y,tries=0; 
+  do{x=randInt(cellsWide()); y=randInt(cellsHigh()); tries++;}while(used.has(x+','+y)&&tries<5000); 
+  return {x,y}; 
+}
 
-function start(){ const startX=cellsWide()/2|0; const startY=cellsHigh()/2|0; snake=[{x:startX,y:startY},{x:startX-1,y:startY},{x:startX-2,y:startY}]; dir=DIR.RIGHT; nextDir=dir; score=0; scoreEl.textContent=score; food=spawnFood(); restartLoop(); }
+// Food
+const FRUITS=['🍎','🍓','🍇','🍉','🍒','🍋','🍑'];
+const FLOWERS=['🌸','🌼','🌻','🌷'];
+const GEM='💎';
 
-function restartLoop(){ if(loop) clearInterval(loop); loop=setInterval(tick,tickMs); }
+function spawnFood(){ 
+  const pos=randomFreeCell(); 
+  let emoji, value;
+  if(Math.random()<0.1){ emoji = GEM; value = 5; } 
+  else{ const isFlower=Math.random()<0.35; emoji = isFlower ? FLOWERS[randInt(FLOWERS.length)] : FRUITS[randInt(FRUITS.length)]; value = isFlower ? 2 : 1; }
+  foodColor = snakeHeadColor;
+  return {x:pos.x,y:pos.y,emoji,value};
+}
 
+// Obstacles
+function spawnObstacles(level){
+  const num = Math.min(level*2, 20);
+  let newObs = [];
+  let used = new Set(snake.map(s=>s.x+','+s.y));
+  used.add(food?.x+','+food?.y);
+  while(newObs.length < num){
+    let x = randInt(cellsWide());
+    let y = randInt(cellsHigh());
+    if(!used.has(x+','+y)){
+      newObs.push({x,y});
+      used.add(x+','+y);
+    }
+  }
+  return newObs;
+}
+
+function drawObstacles(){
+  ctx.fillStyle = '#a78bfa';
+  for(let o of obstacles){
+    ctx.fillRect(o.x*CELL,o.y*CELL,CELL,CELL);
+    ctx.strokeStyle='rgba(0,0,0,.35)';
+    ctx.strokeRect(o.x*CELL,o.y*CELL,CELL,CELL);
+  }
+}
+
+// Snake color picker
+snakeColorPicker.addEventListener('input',(e)=>{
+  snakeHeadColor = e.target.value;
+  snakeBodyColor = lightenColor(snakeHeadColor,50);
+  pauseSnakeColor.value = snakeHeadColor;
+});
+pauseSnakeColor.addEventListener('input',(e)=>{
+  snakeHeadColor = e.target.value;
+  snakeBodyColor = lightenColor(snakeHeadColor,50);
+  snakeColorPicker.value = snakeHeadColor;
+});
+
+function lightenColor(color, percent){
+    const num = parseInt(color.replace("#",""),16),
+          amt = Math.round(2.55 * percent),
+          R = (num >> 16) + amt,
+          G = (num >> 8 & 0x00FF) + amt,
+          B = (num & 0x0000FF) + amt;
+    return "#" + (
+        0x1000000 +
+        (R<255?R<1?0:R:255)*0x10000 +
+        (G<255?G<1?0:G:255)*0x100 +
+        (B<255?B<1?0:B:255)
+    ).toString(16).slice(1);
+}
+
+// Sound toggle link HUD <-> Pause Menu
+soundToggle.addEventListener('change',()=>{ soundOn = soundToggle.checked; soundToggleHud.checked = soundOn; });
+soundToggleHud.addEventListener('change',()=>{ soundOn = soundToggleHud.checked; soundToggle.checked = soundOn; });
+
+// Pause menu
+pauseBtn.addEventListener('click',()=>{ paused=true; pauseMenu.style.display='flex'; });
+resumeBtn.addEventListener('click',()=>{ paused=false; pauseMenu.style.display='none'; });
+speedSelect.addEventListener('change',()=>{ tickMs=parseInt(speedSelect.value); restartLoop(); });
+slowerBtn.addEventListener('click',()=>{ tickMs=Math.min(500,tickMs+20); restartLoop(); speedSelect.value = tickMs; });
+fasterBtn.addEventListener('click',()=>{ tickMs=Math.max(40,tickMs-20); restartLoop(); speedSelect.value = tickMs; });
+
+// Keyboard
 window.addEventListener('keydown',(e)=>{ 
   if(e.key==='ArrowLeft' && dir!==DIR.RIGHT) nextDir=DIR.LEFT;
   else if(e.key==='ArrowRight' && dir!==DIR.LEFT) nextDir=DIR.RIGHT;
   else if(e.key==='ArrowUp' && dir!==DIR.DOWN) nextDir=DIR.UP;
   else if(e.key==='ArrowDown' && dir!==DIR.UP) nextDir=DIR.DOWN;
+  else if(e.key===' '){ 
+    if(paused){ paused=false; pauseMenu.style.display='none'; }
+    else{ paused=true; pauseMenu.style.display='flex'; }
+  }
 });
 
-restartBtn.addEventListener('click',start);
+// Game start
+function start(){ 
+  const startX=cellsWide()/2|0;
+  const startY=cellsHigh()/2|0; 
+  snake=[{x:startX,y:startY},{x:startX-1,y:startY},{x:startX-2,y:startY}];
+  dir=DIR.RIGHT; nextDir=dir; score=0; level=1;
+  scoreEl.textContent=score; levelEl.textContent=level;
+  food=spawnFood(); paused=false;
+  obstacles = spawnObstacles(level);
+  restartLoop();
+}
 
+function restartLoop(){ 
+  if(loop) clearInterval(loop);
+  loop=setInterval(()=>{ if(!paused) tick(); },tickMs);
+  speedLabel.textContent = tickMs+"ms";
+}
+
+// Particles
+class Particle {
+  constructor(x,y,dx,dy,color,size,life){ this.x=x; this.y=y; this.dx=dx; this.dy=dy; this.color=color; this.size=size; this.life=life; }
+  update(){ this.x+=this.dx; this.y+=this.dy; this.life--; }
+  draw(){ ctx.fillStyle=this.color; ctx.globalAlpha=Math.max(0,this.life/50); ctx.fillRect(this.x,this.y,this.size,this.size); ctx.globalAlpha=1; }
+}
+
+function createConfetti(){ 
+  for(let i=0;i<50;i++){
+    confettiParticles.push(new Particle(Math.random()*canvas.width,Math.random()*canvas.height/2,Math.random()*3-1,Math.random()*3,`hsl(${Math.random()*360},80%,60%)`,3,50));
+  }
+}
+function createSparkle(x,y){
+  for(let i=0;i<20;i++){
+    sparkleParticles.push(new Particle(x*CELL+CELL/2,y*CELL+CELL/2,(Math.random()-0.5)*4,(Math.random()-0.5)*4,'#fff',2,20));
+  }
+}
+function updateParticles(){
+  confettiParticles.forEach(p=>p.update());
+  sparkleParticles.forEach(p=>p.update());
+  confettiParticles = confettiParticles.filter(p=>p.life>0);
+  sparkleParticles = sparkleParticles.filter(p=>p.life>0);
+}
+
+// Tick
 function tick(){
-  dir=nextDir; const head=snake[0]; const nx=head.x+dir.x; const ny=head.y+dir.y;
+  dir=nextDir;
+  const head=snake[0]; 
+  const nx=head.x+dir.x, ny=head.y+dir.y;
   if(nx<0||ny<0||nx>=cellsWide()||ny>=cellsHigh()){ gameOver('Hit wall'); return; }
-  for(let s of snake){ if(s.x===nx && s.y===ny){ gameOver('Bite tail'); return; } }
+  for(let s of snake){ if(s.x===nx&&s.y===ny){ gameOver('Bite tail'); return; } }
+  for(let o of obstacles){ if(o.x===nx&&o.y===ny){ gameOver('Hit obstacle'); return; } }
   snake.unshift({x:nx,y:ny});
-  if(nx===food.x && ny===food.y){ score+=food.value; scoreEl.textContent=score; food=spawnFood(); }else{ snake.pop(); }
+  if(nx===food.x && ny===food.y){
+    score+=food.value; scoreEl.textContent=score;
+    if(soundOn) eatSound.play().catch(()=>{});
+    if(food.emoji===GEM) createSparkle(nx,ny);
+    food=spawnFood();
+    const newLevel=Math.floor(score/5)+1;
+    if(newLevel>level){ 
+      level=newLevel; levelEl.textContent=level; tickMs=Math.max(40,tickMs-10); restartLoop();
+      if(soundOn) levelUpSound.play().catch(()=>{});
+      createConfetti();
+      obstacles = spawnObstacles(level);
+    }
+  } else { snake.pop(); }
+  updateParticles();
   draw();
 }
 
-function gameOver(reason){ clearInterval(loop); alert(reason+'! Score: '+score); }
-
+// Draw
 function draw(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   ctx.font=(CELL*0.9)+'px "Apple Color Emoji","Segoe UI Emoji", system-ui';
   ctx.textBaseline='middle'; ctx.textAlign='center';
+  ctx.fillStyle = foodColor;
   ctx.fillText(food.emoji, food.x*CELL+CELL/2, food.y*CELL+CELL/2);
+  drawObstacles();
   for(let i=snake.length-1;i>=0;i--){
-    const s=snake[i]; const px=s.x*CELL; const py=s.y*CELL;
-    ctx.fillStyle=i===0?'#22c55e':'#86efac'; ctx.fillRect(px,py,CELL,CELL);
+    const s=snake[i], px=s.x*CELL, py=s.y*CELL;
+    const grad = ctx.createLinearGradient(px, py, px+CELL, py+CELL);
+    grad.addColorStop(0,snakeBodyColor);
+    grad.addColorStop(1,snakeHeadColor);
+    ctx.fillStyle = i===0 ? snakeHeadColor : grad;
+    ctx.fillRect(px,py,CELL,CELL);
     ctx.strokeStyle='rgba(0,0,0,.35)'; ctx.strokeRect(px,py,CELL,CELL);
   }
+  confettiParticles.forEach(p=>p.draw());
+  sparkleParticles.forEach(p=>p.draw());
 }
 
-// ===== Leaderboard =====
-function saveScore(name, points){
-  if(!name){ alert('Enter your name!'); return; }
-  fetch("http://127.0.0.1:5000/add_score",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name,points})
-  }).then(r=>r.json()).then(()=>fetchScores());
+// Game over
+function gameOver(reason){
+  clearInterval(loop);
+  if(soundOn) gameOverSound.play().catch(()=>{});
+  alert(reason+'! Score: '+score);
+}
+
+// Backend-connected Leaderboard
+async function fetchScores(){
+  const response = await fetch('/api/scores');
+  const data = await response.json();
+  scoreTable.innerHTML='';
+  data.sort((a,b)=>b.points-a.points).forEach((row, idx)=>{
+    const tr = document.createElement('tr');
+    if(idx===0) tr.classList.add("highlight");
+    tr.innerHTML=`
+      <td>${row.name}</td>
+      <td>${row.points}</td>
+      <td><button class="deleteBtn" data-id="${row.id}">❌</button></td>
+    `;
+    scoreTable.appendChild(tr);
+  });
+
+  document.querySelectorAll('.deleteBtn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.dataset.id;
+      await fetch(`/api/scores/${id}`, { method: 'DELETE' });
+      fetchScores();
+    });
+  });
+}
+
+function saveScore(name, points){ 
+  if(!name){ alert('Enter name!'); return; }
+  let scores = JSON.parse(localStorage.getItem('scores')||'[]');
+  const id = Date.now(); // unique ID
+  scores.push({ id, name, points });
+  localStorage.setItem('scores', JSON.stringify(scores));
+  fetchScores();
 }
 
 function fetchScores(){
-  fetch("http://127.0.0.1:5000/scores")
-    .then(r=>r.json())
-    .then(data=>{
-      scoreTable.innerHTML=''; data.sort((a,b)=>b.points-a.points).forEach(row=>{
-        const tr=document.createElement('tr'); tr.innerHTML=`<td>${row.name}</td><td>${row.points}</td>`; scoreTable.appendChild(tr);
-      });
+  let data = JSON.parse(localStorage.getItem('scores')||'[]');
+  scoreTable.innerHTML='';
+  data.sort((a,b)=>b.points-a.points).forEach((row, idx)=>{
+    const tr = document.createElement('tr');
+    if(idx===0) tr.classList.add("highlight");
+    tr.innerHTML=`
+      <td>${row.name}</td>
+      <td>${row.points}</td>
+      <td><button class="deleteBtn" data-id="${row.id}">❌</button></td>
+    `;
+    scoreTable.appendChild(tr);
+  });
+
+  document.querySelectorAll('.deleteBtn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.id;
+      data = data.filter(s => s.id != id);
+      localStorage.setItem('scores', JSON.stringify(data));
+      fetchScores();
     });
+  });
 }
+
 
 saveScoreBtn.addEventListener('click',()=>saveScore(playerNameInput.value,score));
 
-start(); fetchScores();
+// Start game
+restartBtn.addEventListener('click',start);
+start(); 
+fetchScores();
 </script>
 </body>
 </html>
